@@ -1,0 +1,160 @@
+; Configuration file for pycbc_make_sbank_workflow
+;
+; Template bank documentation can be found here:
+;
+;    http://pycbc.org/pycbc/latest/html/tmpltbank.html
+;
+; Documentation for the PyCBC workflow module is here:
+;
+;    http://pycbc.org/pycbc/latest/html/workflow.html
+
+
+[workflow]
+; http://pycbc.org/pycbc/latest/html/workflow/initialization.html
+
+; What files to store? If this is set to "results" then only the final template
+; bank will exist after the workflow completes.
+; If set to "merged_triggers" then a template bank will be placed in the output
+; directory after each "cycle" of the workflow generation completes.
+; If set to "all_triggers" you will get some more files from within each cycle,
+; but not the output of each of the parallel jobs.
+; if set to "all_files" you will get everything.
+file-retention-level = merged_triggers
+
+; Start and end times are needed to obey LIGO file naming conventions. Actual
+; values are irrelevant. This can be overriden on the command line.
+start-time = 900000000
+end-time = 900010000
+
+; These are the sbank-specific options.
+; num-cycles is how many repetitions of the sbank parallelization -> recombine
+; process will be done
+num-cycles = 50
+
+; nbanks is how many parallel jobs to use each cycle
+nbanks = 10
+
+; seed-bank can be used to provide an input to sbank jobs
+; seed-bank =
+
+; If using seed-bank, this will instruct sbank to use this to determine the
+; initial chirp-mass bins. In this case a coarse job is not run
+; use-seed-bank-for-chirp-bins=
+
+; If not giving a seed-bank the coarse job will be used as a seed for the first
+; parallel stage. Give this option and the coarse job will not be used as a
+; seed. Then it is only used to determine initial chirp-mass bins
+; do-not-use-coarse-job-as-seed =
+
+
+[workflow-ifos]
+; Need to specify the active ifos for file naming.
+h1 =
+l1 =
+
+
+[executables]
+; http://pycbc.org/pycbc/latest/html/workflow/initialization.html
+
+; All executables are listed here
+sbank = /home/ian.harry/.conda/envs/thapycbcsbank/bin/sbank
+sbank_mchirp_bins = /home/ian.harry/.conda/envs/thapycbcsbank/bin/sbank_hdf5_choose_mchirp_boundaries
+h5add = /home/ian.harry/.conda/envs/thapycbcsbank/bin/sbank_hdf5_bankcombiner
+page_versioning = ${which:pycbc_page_versioning}
+
+; Then options for all executables are added. These are added directly to the
+; jobs as described here:
+;    http://pycbc.org/pycbc/latest/html/workflow/initialization.html
+[sbank]
+; Options for *all* sbank jobs
+
+; PSD-related options
+reference-psd = O3Optimistic_o3_optimistic_psd.xml
+; This refers to the instrument in the reference-psd file.
+;instrument = H1
+; F-high is lower than this if the waveform power doesn't get this high
+fhigh-max = 1024.
+flow = 15.0
+
+; Waveform
+approximant = IMRPhenomXAS
+
+; Mass/spin parameter options
+mass1-min = 15.0
+mass1-max = 70.0
+mass2-min = 3.0
+mass2-max = 10.0
+;mtotal-min = 10.0
+;mtotal-max = 100.0
+mratio-min = 5.0
+mratio-max = 12.0
+aligned-spin =
+spin1-max = 0.99
+spin1-min = 0.
+spin2-max = 0.99
+spin2-min = 0.
+
+;minimal match
+match-min = 0.97
+
+; Optimization choices
+iterative-match-df-max = 8.0
+cache-waveforms =
+
+[sbank-coarse]
+; These options are sent only to the initial sbank-coarse job. There must not
+; be duplication between this section and [sbank]
+
+; When you accept a point after rejecting, on average, more than
+; convergence-threshold points, the job will terminate.
+convergence-threshold = 50
+; Do not accept more templates than this. Once this limit is reached the job
+; will terminate
+max-new-templates = 2000
+
+[pegasus_profile-sbank-coarse]
+; These are pegasus specific options for sbank jobs with the coarse tag.
+; One main example of this section is to specify options to go into the 
+; submit file. For example:
+
+condor|request_memory = 4000
+; This can take a lot of RAM! Other options for condor sub files can be
+; specified in the same way. Things like accounting group are automatically
+; added, as is get_env = True.
+;
+[pegasus_profile-sbank-readder]
+condor|request_memory = 10000
+
+[sbank-parallel]
+; parallel jobs, cycle0
+max-new-templates = 500
+
+[sbank-readder]
+; These options are sent to *all* sbank readder jobs. The readder jobs takes
+; all points accepted in the parallel stage and tests them against each other.
+; This avoids the situation where two separate parallel jobs place a template
+; in essentially the same point.
+
+; Jobs should not terminate until all potential points are tried
+convergence-threshold = 500000000
+max-new-templates = 20000000000
+
+[sbank_mchirp_bins]
+; These options are sent to the sbank_mchirp_bins jobs
+template-weight = equal
+
+[h5add]
+; Global llwadd options, if any, go here
+
+[pegasus_profile]
+condor|request_memory = 15000
+condor|request_disk = 2000001
+condor|accounting_group = ligo.dev.o4.cbc.bbh.pycbcoffline
+pycbc|primary_site = condorpool_symlink
+
+;[pegasus_profile-condorpool_shared]
+;pycbc|site-scratch = /scratch/rahul.dhurkunde
+;pycbc|unique-scratch =
+;pegasus|data.configuration = nonsharedfs
+;pegasus|transfer.bypass.input.staging = true
+

@@ -1,0 +1,22 @@
+universe = vanilla
+executable = ./xp-with-flags_comps_estimator.py
+arguments = --job-number $(process) --total-jobs 500 --bank-file /home/rahul.dhurkunde/searches/BBH-precession/Bank/prec-full-bank.h5
+request_memory = 3000M
+request_disk = 1000M
+getenv = True
+
+log = log/condorlog-$(process).log
+error = log/condorerr-$(process).err
+output = log/condorout-$(process).out
+
+notification = never
+priority = 100
+accounting_group = ligo.dev.o4.cbc.bbh.pycbcoffline
+
+# NEW: File transfer settings
+should_transfer_files = yes
+when_to_transfer_output = on_exit
+
+transfer_output_files = Bank_output_$(process).dat
+
+queue 500
